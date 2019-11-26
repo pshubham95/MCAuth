@@ -49,6 +49,76 @@ app.post('/registerUser', (req, resp) => {
     //res.status(200).json(req.body)
 })
 
+app.post('/addBookMark', (req, resp) => {
+    const {userId, place, type} = req.body;
+    if ([null, undefined, ''].includes(userId) || [null, undefined, ''].includes(place) || [null, undefined, ''].includes(type)) {
+        resp.status(400).json({'err': 'specify userid and place'});
+        return;
+    }
+    client.query(`INSERT INTO bookmarks(user_id, place, type) VALUES ($1, $2, $3)`, [userId, place, type]).then(res => {
+        resp.status(200).json({'status': 'inserted bookmarks'});
+        return;
+    }).catch(e => {
+        resp.status(500).json({err: e.stack});
+        return;
+    })
+});
+
+app.post('/deleteBookMark', (req, resp) => {
+    const {userId, place, type} = req.body;
+    if ([null, undefined, ''].includes(userId) || [null, undefined, ''].includes(place) || [null, undefined, ''].includes(type)) {
+        resp.status(400).json({'err': 'specify userid and place'});
+        return;
+    }
+    client.query('DELETE FROM bookmarks where user_id=$1 and place=$2 and type=$3', [userId, place, type]).then(res => {
+        resp.status(200).json({'status': 'deleted bookmarks'});
+        return;
+    }).catch(e => {
+        resp.status(500).json({err: e.stack});
+    })
+});
+
+app.get('/getBookMarks', (req, resp) => {
+    const {userId, type} = req.query;
+    if ([null, undefined, ''].includes(userId) || [null, undefined, ''].includes(type)) {
+        resp.status(400).json({'err': 'specify userid and place'});
+        return;
+    }
+    client.query('select * from bookmarks where user_id=$1 and type=$2', [userId, type]).then(res => {
+        //console.log(res);
+        resp.status(200).json({data: res.rows})
+    }).catch(e => {
+        resp.status(500).json({err: e.stack});
+    })
+});
+
+app.post('/saveRating', (req, resp) => {
+    const {userId, rating, place, type} = req.body;
+    if ([null, undefined, ''].includes(userId) || [null, undefined, ''].includes(type) || [null, undefined, ''].includes(rating) || [null, undefined, ''].includes(place)) {
+        resp.status(400).json({'err': 'specify userid and place'});
+        return;
+    }
+    let table = '';
+    if (type === 'vacation') {
+        table = 'user_ratings_vacation';
+    } else {
+        table = 'user_ratings_relocation';
+    }
+    client.query(`select * from ${table} where user_id=$1 and place=$2`, [userId, place]).then(res => {
+        if (res.rows.length === 0) {
+            client.query(`insert into ${table}(user_id, place, rating) values ($1, $2, $3)`, [userId, place, rating]).then(r => {
+                resp.status(200).json({'status': 'success'});
+                return;
+            }).catch(e => resp.status(500).json({err: e.stack}))
+        } else {
+            client.query(`update ${table} set rating=$1 where user_id=$2 and place=$3`, [rating, userId, place]).then(r => {
+                resp.status(200).json({'status': 'success'});
+                return;
+            }).catch(e => resp.status(500).json({err: e.stack}))
+        }
+    })
+});
+
 app.post('/login', (req, resp) => {
     const {username, password} = req.body;
     const arr = [username, password];
