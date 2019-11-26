@@ -15,7 +15,7 @@ const pool = new Pool({
     connectionString: connectionString,
 })
 pool.query('SELECT NOW()', (err, res) => {
-    console.log(err, res)
+    //console.log(err, res)
     pool.end()
 })
 
@@ -57,9 +57,10 @@ app.post('/login', (req, resp) => {
         return;
     }
     const shapass = sha1(password);
-    client.query(`SELECT from user_details where password = '${shapass}' and username ='${username}'`).then(res => {
+    client.query(`SELECT id from user_details where password = '${shapass}' and username ='${username}'`).then(res => {
         if (res.rows.length > 0) {
-            resp.status(200).json({'status': 'authentication successful'});
+            console.log(res.rows)
+            resp.status(200).json({'status': 'authentication successful', id: res.rows[0].id});
             return;
         } else {
             resp.status(401).json({'err': 'Incorrect credentials'});
@@ -72,4 +73,13 @@ const client = new Client({
     connectionString: connectionString,
 })
 client.connect()
-app.listen(process.env.PORT || 3000, () => console.log('server running'))
+app.listen(process.env.PORT || 3000, () =>{
+    console.log('server running');
+});
+
+function cleanup() {
+    client.end()
+}
+
+process.on('SIGINT', cleanup);
+process.on('SIGTERM', cleanup);
