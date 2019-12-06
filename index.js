@@ -85,8 +85,11 @@ app.get('/getBookMarks', (req, resp) => {
         return;
     }
     client.query('select * from bookmarks where user_id=$1 and type=$2', [userId, type]).then(res => {
-        //console.log(res);
-        resp.status(200).json({data: res.rows})
+        console.log(res);
+        const result = res.rows.filter(function (a) {
+            return !this[a.place] && (this[a.place] = true);
+        }, Object.create(null));
+        resp.status(200).json({data: result})
     }).catch(e => {
         resp.status(500).json({err: e.stack});
     })
@@ -143,7 +146,7 @@ const client = new Client({
     connectionString: connectionString,
 })
 client.connect()
-app.listen(process.env.PORT || 3000, () =>{
+app.listen(process.env.PORT || 5000, () =>{
     console.log('server running');
 });
 
